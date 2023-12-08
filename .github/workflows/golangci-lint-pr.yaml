@@ -1,0 +1,41 @@
+name: Go Lint on PR
+on:
+  pull_request_target:
+    paths:
+      - "*/**"
+      - "*.go"
+      - go.*
+      - "!.github/**"
+      - "!tmp/**"
+jobs:
+  golangci-lint:
+    name: lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout PR head
+        uses: actions/checkout@v3
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+
+      - name: Checkout current
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Merge PR into current
+        run: |
+          git config user.name github-actions
+          git config user.email github-actions@github.com
+          git merge ${{ github.event.pull_request.head.sha }}
+
+      - name: Setup Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: "stable"
+          cache: false # disable cache to avoid conflicts with golangci
+
+      - name: Lint
+        uses: golangci/golangci-lint-action@v3
+        with:
+          args: --timeout=5m
