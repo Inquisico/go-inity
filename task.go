@@ -1,7 +1,5 @@
 package inity
 
-import "sync"
-
 type task interface {
 	Start() error
 	Close()
@@ -12,17 +10,16 @@ type quit interface {
 }
 
 type taskAdapter struct {
-	task      task
-	closeOnce sync.Once
+	task task
 }
 
 func (t *taskAdapter) close() {
-	t.closeOnce.Do(t.task.Close)
+	t.task.Close()
 }
 
 func (t *taskAdapter) quit() {
 	if q, ok := t.task.(quit); ok {
-		t.closeOnce.Do(q.Quit)
+		q.Quit()
 		return
 	}
 
