@@ -1,7 +1,10 @@
 linters:
   enable:
     - contextcheck
+    - dupl
+    - errname
     - errorlint
+    - exhaustive
     - forbidigo
     - gci
     - goconst
@@ -9,6 +12,7 @@ linters:
     - gocyclo
     - godot
     - gosec
+    - ireturn
     - lll
     - misspell
     - nosprintfhostport
@@ -16,6 +20,7 @@ linters:
     - revive
     - wastedassign
     - whitespace
+    - wrapcheck
     - zerologlint
 linters-settings:
   revive:
