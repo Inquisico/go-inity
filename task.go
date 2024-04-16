@@ -9,15 +9,15 @@ type quit interface {
 	Quit()
 }
 
-type taskAdapter struct {
+type taskWrapper struct {
 	task task
 }
 
-func (t *taskAdapter) close() {
+func (t *taskWrapper) close() {
 	t.task.Close()
 }
 
-func (t *taskAdapter) quit() {
+func (t *taskWrapper) quit() {
 	if q, ok := t.task.(quit); ok {
 		q.Quit()
 		return

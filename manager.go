@@ -63,7 +63,7 @@ type Manager struct {
 	signals <-chan os.Signal
 	logger  Logger
 
-	tasks []*taskAdapter
+	tasks []*taskWrapper
 
 	force     bool
 	mu        sync.Mutex
@@ -107,7 +107,7 @@ func (m *Manager) wrapStart(start func() error) func() error {
 }
 
 func (m *Manager) Register(task task) {
-	m.tasks = append(m.tasks, &taskAdapter{task: task})
+	m.tasks = append(m.tasks, &taskWrapper{task: task})
 }
 
 func (m *Manager) GetContext() context.Context {
