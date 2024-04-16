@@ -15,10 +15,6 @@ const (
 	LevelError Level = 8
 )
 
-type Logger interface {
-	Log(ctx context.Context, level Level, msg string, fields ...any)
-}
-
 // LoggerFunc is a function that also implements Logger interface.
 type LoggerFunc func(ctx context.Context, level Level, msg string, fields ...any)
 
@@ -26,10 +22,10 @@ func (f LoggerFunc) Log(ctx context.Context, level Level, msg string, fields ...
 	f(ctx, level, msg, fields...)
 }
 
-func DefaultLogger() Logger {
+func DefaultLogger() LoggerFunc {
 	l := log.Default()
 
-	return LoggerFunc(func(ctx context.Context, level Level, msg string, fields ...any) {
+	return LoggerFunc(func(_ context.Context, level Level, msg string, fields ...any) {
 		switch level {
 		case LevelDebug:
 			l.Println("DEBUG:", msg, fields)
