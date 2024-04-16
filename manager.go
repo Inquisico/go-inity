@@ -9,6 +9,10 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
+const (
+	channelClosedSize = 10
+)
+
 var (
 	// ErrTaskManagerStopped indicates that the operation is now illegal because of
 	// the task being stopped.
@@ -16,6 +20,10 @@ var (
 	// ErrTaskManagerClosed indicates that the task manager has been closed.
 	ErrTaskManagerClosed = errors.New("task manager is closed")
 )
+
+type Logger interface {
+	Log(ctx context.Context, level Level, msg string, fields ...any)
+}
 
 type Option func(*Manager)
 
@@ -32,14 +40,12 @@ func WithSignals(signals <-chan os.Signal) Option {
 }
 
 func New(ctx context.Context, name string, opts ...Option) *Manager {
-	ctx, cancel := context.WithCancel(ctx)
 	group, ctx := errgroup.WithContext(ctx)
 
 	manager := &Manager{
 		name:   name,
 		group:  group,
 		ctx:    ctx,
-		cancel: cancel,
 		logger: DefaultLogger(),
 	}
 
@@ -54,18 +60,18 @@ type Manager struct {
 	name    string
 	group   *errgroup.Group
 	ctx     context.Context
-	cancel  context.CancelFunc
 	signals <-chan os.Signal
 	logger  Logger
 
-	tasks []task
+	tasks []*taskWrapper
 
 	force     bool
 	mu        sync.Mutex
 	closeOnce sync.Once
 }
 
-func (m *Manager) watchForShutdown(closed chan<- bool) {
+func (m *Manager) watchForShutdown() <-chan bool {
+	closed := make(chan bool, channelClosedSize)
 	// Terminate tasks when signaled or done
 	go func() {
 		select {
@@ -85,6 +91,8 @@ func (m *Manager) watchForShutdown(closed chan<- bool) {
 			}
 		}
 	}()
+
+	return closed
 }
 
 func (m *Manager) wrapStart(start func() error) func() error {
@@ -99,7 +107,7 @@ func (m *Manager) wrapStart(start func() error) func() error {
 }
 
 func (m *Manager) Register(task task) {
-	m.tasks = append(m.tasks, task)
+	m.tasks = append(m.tasks, &taskWrapper{task: task})
 }
 
 func (m *Manager) GetContext() context.Context {
@@ -115,20 +123,19 @@ func (m *Manager) Start() error {
 	}
 
 	m.logger.Log(m.ctx, LevelInfo, "Starting task manager", "manager", m.name)
-	for _, task := range m.tasks {
-		if _, ok := task.(*Manager); ok {
-			m.group.Go(m.wrapStart(task.Start))
+	for _, t := range m.tasks {
+		if leafManager, ok := t.task.(*Manager); ok {
+			m.group.Go(m.wrapStart(leafManager.Start))
 		} else {
-			m.group.Go(task.Start)
+			m.group.Go(t.task.Start)
 		}
 	}
 
-	closed := make(chan bool, 10)
-	m.watchForShutdown(closed)
+	closed := m.watchForShutdown()
 
 	m.logger.Log(m.ctx, LevelInfo, "Waiting for exit conditions", "manager", m.name)
 
-	// Can be unlocked
+	// Mutex can be unlocked after everything has started
 	m.mu.Unlock()
 
 	err := m.group.Wait()
@@ -153,7 +160,7 @@ func (m *Manager) Close() {
 	m.closeOnce.Do(func() {
 		m.logger.Log(m.ctx, LevelDebug, "Closing task manager", "manager", m.name)
 		for i := len(m.tasks) - 1; i >= 0; i-- {
-			m.tasks[i].Close()
+			m.tasks[i].close()
 		}
 		m.logger.Log(m.ctx, LevelDebug, "Task manager closed", "manager", m.name)
 	})
@@ -166,13 +173,7 @@ func (m *Manager) Quit() {
 	m.closeOnce.Do(func() {
 		m.logger.Log(m.ctx, LevelDebug, "Quiting task manager", "manager", m.name)
 		for i := len(m.tasks) - 1; i >= 0; i-- {
-			task := m.tasks[i]
-			if t, ok := task.(quit); ok {
-				t.Quit()
-			} else {
-				// do not wait for task to close
-				go task.Close()
-			}
+			m.tasks[i].quit()
 		}
 		m.logger.Log(m.ctx, LevelDebug, "Task manager closed", "manager", m.name)
 	})
