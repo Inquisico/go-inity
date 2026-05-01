@@ -1,3 +1,4 @@
+version: "2"
 linters:
   enable:
     - contextcheck
@@ -6,7 +7,6 @@ linters:
     - errorlint
     - exhaustive
     - forbidigo
-    - gci
     - goconst
     - gocritic
     - gocyclo
@@ -22,54 +22,67 @@ linters:
     - whitespace
     - wrapcheck
     - zerologlint
-linters-settings:
-  revive:
-    rules:
-      - name: blank-imports
-        disabled: false
-      - name: context-as-argument
-        disabled: false
-      - name: context-keys-type
-        disabled: false
-      - name: dot-imports
-        disabled: false
-      - name: error-return
-        disabled: false
-      - name: error-strings
-        disabled: false
-      - name: error-naming
-        disabled: false
-      - name: exported
-        disabled: false
-      - name: if-return
-        disabled: false
-      - name: increment-decrement
-        disabled: false
-      - name: var-naming
-        disabled: false
-      - name: var-declaration
-        disabled: false
-      - name: package-comments
-        disabled: false
-      - name: range
-        disabled: false
-      - name: receiver-naming
-        disabled: false
-      - name: time-naming
-        disabled: false
-      - name: unexported-return
-        disabled: false
-      - name: indent-error-flow
-        disabled: false
-      - name: errorf
-        disabled: false
-      - name: empty-block
-        disabled: false
-      - name: superfluous-else
-        disabled: false
-      - name: unused-parameter
-        disabled: false
-      - name: unreachable-code
-        disabled: false
-      - name: redefines-builtin-id
-        disabled: false
+  settings:
+    revive:
+      rules:
+        - name: blank-imports
+          disabled: false
+        - name: context-as-argument
+          disabled: false
+        - name: context-keys-type
+          disabled: false
+        - name: dot-imports
+          disabled: false
+        - name: error-return
+          disabled: false
+        - name: error-strings
+          disabled: false
+        - name: error-naming
+          disabled: false
+        - name: exported
+          disabled: false
+        - name: if-return
+          disabled: false
+        - name: increment-decrement
+          disabled: false
+        - name: var-naming
+          disabled: false
+        - name: var-declaration
+          disabled: false
+        - name: package-comments
+          disabled: false
+        - name: range
+          disabled: false
+        - name: receiver-naming
+          disabled: false
+        - name: time-naming
+          disabled: false
+        - name: unexported-return
+          disabled: false
+        - name: indent-error-flow
+          disabled: false
+        - name: errorf
+          disabled: false
+        - name: empty-block
+          disabled: false
+        - name: superfluous-else
+          disabled: false
+        - name: unused-parameter
+          disabled: false
+        - name: unreachable-code
+          disabled: false
+        - name: redefines-builtin-id
+          disabled: false
+formatters:
+  enable:
+    - gci
+  settings:
+    gci:
+      sections:
+        - standard
+        - default # everything else
+        - prefix(github.com/inquisico/)
+        - prefix(github.com/inquisico/go-inity/)
+        - blank
+        - dot
+      custom-order: true

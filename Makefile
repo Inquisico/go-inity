@@ -1,6 +1,6 @@
-.PHONY: all update lint run build build-in-docker install docker
+.PHONY: all update lint test bench coverage run build
 
-all: run
+all: test
 
 update:
 	@go mod tidy \
@@ -28,7 +28,4 @@ mockall:
 		&& find tmp/mocks -type d -depth -exec bash -c 'rm -rf $(DIR)$${1#tmp/mocks}/mocks && mv $$1 $(DIR)$${1#tmp/mocks}/mocks' _ {} \;
 
 run: update
-	@go run ./cmd/api
-
-build: update
-	@cd go build -o ./tmp ./cmd/...
+	@go run ./examples/simple

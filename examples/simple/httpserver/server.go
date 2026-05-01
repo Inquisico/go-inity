@@ -2,12 +2,15 @@ package httpserver
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"time"
 
 	"github.com/rs/zerolog/log"
 )
+
+const shutdownTimeout = 5 * time.Second
 
 type ClosableServer struct {
 	server *http.Server
@@ -30,12 +33,20 @@ func New(port string) *ClosableServer {
 
 func (s *ClosableServer) Start() error {
 	log.Info().Str("Address", s.server.Addr).Msg("Starting http server")
-	return s.server.ListenAndServe()
+	err := s.server.ListenAndServe()
+	if errors.Is(err, http.ErrServerClosed) {
+		return nil
+	}
+
+	return err
 }
 
 func (s *ClosableServer) Close() {
 	log.Info().Msg("Shutting down HTTP server")
-	err := s.server.Shutdown(context.Background())
+	ctx, cancel := context.WithTimeout(context.Background(), shutdownTimeout)
+	defer cancel()
+
+	err := s.server.Shutdown(ctx)
 	if err != nil {
 		log.Error().Err(err).Msg("err while shutting down HTTP server")
 	}
