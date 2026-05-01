@@ -5,6 +5,7 @@ import (
 	"errors"
 	"os"
 	"sync"
+	"sync/atomic"
 
 	"golang.org/x/sync/errgroup"
 )
@@ -21,24 +22,29 @@ var (
 	ErrTaskManagerClosed = errors.New("task manager is closed")
 )
 
+// Logger records lifecycle events emitted by the manager.
 type Logger interface {
 	Log(ctx context.Context, level Level, msg string, fields ...any)
 }
 
+// Option configures a Manager during construction.
 type Option func(*Manager)
 
+// WithLogger configures the logger used by the manager.
 func WithLogger(logger Logger) Option {
 	return func(m *Manager) {
 		m.logger = logger
 	}
 }
 
+// WithSignals configures the signal channel that triggers graceful shutdown.
 func WithSignals(signals <-chan os.Signal) Option {
 	return func(m *Manager) {
 		m.signals = signals
 	}
 }
 
+// New constructs a Manager that runs tasks under the supplied context.
 func New(ctx context.Context, name string, opts ...Option) *Manager {
 	group, ctx := errgroup.WithContext(ctx)
 
@@ -56,6 +62,7 @@ func New(ctx context.Context, name string, opts ...Option) *Manager {
 	return manager
 }
 
+// Manager starts registered tasks and shuts them down in reverse order.
 type Manager struct {
 	name    string
 	group   *errgroup.Group
@@ -65,7 +72,7 @@ type Manager struct {
 
 	tasks []*taskWrapper
 
-	force     bool
+	force     atomic.Bool
 	mu        sync.Mutex
 	closeOnce sync.Once
 }
@@ -80,7 +87,7 @@ func (m *Manager) watchForShutdown() <-chan bool {
 			m.Close()
 			closed <- true
 		case <-m.ctx.Done():
-			if m.force {
+			if m.force.Load() {
 				// we do not wait for quit to return
 				closed <- true
 				m.Quit()
@@ -98,7 +105,7 @@ func (m *Manager) watchForShutdown() <-chan bool {
 func (m *Manager) wrapStart(start func() error) func() error {
 	return func() error {
 		if err := start(); err != nil {
-			m.force = true
+			m.force.Store(true)
 			return err
 		}
 
@@ -106,14 +113,17 @@ func (m *Manager) wrapStart(start func() error) func() error {
 	}
 }
 
+// Register adds a task to the manager start list.
 func (m *Manager) Register(task task) {
 	m.tasks = append(m.tasks, &taskWrapper{task: task})
 }
 
+// GetContext returns the manager context derived from the parent context.
 func (m *Manager) GetContext() context.Context {
 	return m.ctx
 }
 
+// Start launches all registered tasks and waits for shutdown.
 func (m *Manager) Start() error {
 	m.mu.Lock()
 
@@ -124,11 +134,7 @@ func (m *Manager) Start() error {
 
 	m.logger.Log(m.ctx, LevelInfo, "Starting task manager", "manager", m.name)
 	for _, t := range m.tasks {
-		if leafManager, ok := t.task.(*Manager); ok {
-			m.group.Go(m.wrapStart(leafManager.Start))
-		} else {
-			m.group.Go(t.task.Start)
-		}
+		m.group.Go(m.wrapStart(t.task.Start))
 	}
 
 	closed := m.watchForShutdown()
