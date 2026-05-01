@@ -17,7 +17,7 @@ func main() {
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
 
 	// Create a task manager
-	taskManager := inity.New(context.Background(), "main", inity.WithSignals(sigs))
+	taskManager := inity.New("main", inity.WithSignals(sigs))
 	defer taskManager.Close()
 
 	// Init HTTP Server  (we use this as a task for simplicity)
@@ -27,7 +27,7 @@ func main() {
 	taskManager.Register(httpServer)
 
 	// Wait for all tasks to exit
-	if err := taskManager.Start(); err != nil {
+	if err := taskManager.Start(context.Background()); err != nil {
 		log.Println("WARN: Task has returned an error or closed", err)
 	}
 

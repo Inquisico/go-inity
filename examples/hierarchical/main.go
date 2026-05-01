@@ -12,10 +12,8 @@ import (
 )
 
 func main() {
-	ctx := context.Background()
-
-	// Create a depdendent manager
-	leafAManager := inity.New(ctx, "leaf")
+	// Create a dependent manager
+	leafAManager := inity.New("leafA")
 	defer leafAManager.Close()
 	{ // This block is just for easy reading
 		// Init HTTP Server A
@@ -25,14 +23,14 @@ func main() {
 		leafAManager.Register(httpServerA)
 	}
 
-	// Create a depdendent manager
-	leafBManager := inity.New(ctx, "leaf")
+	// Create a dependent manager
+	leafBManager := inity.New("leafB")
 	defer leafBManager.Close()
 	{ // This block is just for easy reading
-		// Init HTTP Server A
+		// Init HTTP Server B
 		httpServerB := httpserver.New("8081")
 
-		// Register HTTP server A with leaf manager
+		// Register HTTP server B with leaf manager
 		leafBManager.Register(httpServerB)
 	}
 
@@ -41,7 +39,7 @@ func main() {
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
 
 	// Create a task manager
-	rootManager := inity.New(context.Background(), "root", inity.WithSignals(sigs))
+	rootManager := inity.New("root", inity.WithSignals(sigs))
 	defer rootManager.Close()
 	{ // This block is just for easy reading
 		// Register leaf managers with root manager
@@ -56,7 +54,7 @@ func main() {
 	}
 
 	// Wait for all tasks to exit
-	if err := rootManager.Start(); err != nil {
+	if err := rootManager.Start(context.Background()); err != nil {
 		log.Println("WARN: Task has returned an error or closed", err)
 	}
 

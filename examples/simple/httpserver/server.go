@@ -31,7 +31,7 @@ func New(port string) *ClosableServer {
 	}
 }
 
-func (s *ClosableServer) Start() error {
+func (s *ClosableServer) Start(_ context.Context) error {
 	log.Info().Str("Address", s.server.Addr).Msg("Starting http server")
 	err := s.server.ListenAndServe()
 	if errors.Is(err, http.ErrServerClosed) {
