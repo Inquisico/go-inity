@@ -5,25 +5,26 @@ on:
       - master
     paths:
       - "*/**"
-      - "*.go"
       - go.*
       - "!.github/**"
+      - "!dev/**"
       - "!tmp/**"
+
 jobs:
   golangci:
     name: lint
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Setup Go
-        uses: actions/setup-go@v4
+        uses: actions/setup-go@v6
         with:
           go-version: "stable"
           cache: false # disable cache to avoid conflicts with golangci
 
       - name: Lint
-        uses: golangci/golangci-lint-action@v3
+        uses: golangci/golangci-lint-action@v9
         with:
-          args: --timeout=5m
+          args: --timeout=10m

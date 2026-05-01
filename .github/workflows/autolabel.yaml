@@ -1,16 +1,19 @@
 name: Label PR
 
 on:
-  pull_request_target:
+  pull_request:
     types: [opened, reopened, synchronize]
 
+permissions:
+  contents: read
+
 jobs:
-  autolabel:
+  auto_label:
+    permissions:
+      pull-requests: write
     runs-on: ubuntu-latest
     steps:
-      - name: Label PR
-        uses: release-drafter/release-drafter@v5
-        with:
-          disable-releaser: true
+      - name: Auto Label
+        uses: release-drafter/release-drafter/autolabeler@v7
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

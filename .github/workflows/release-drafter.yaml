@@ -3,18 +3,19 @@ name: Release Drafter
 on:
   push:
     branches:
-      - master
+      - main
     paths-ignore:
       - ".github/**"
 
 jobs:
   update_release_draft:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: read
     steps:
       - name: Draft release
-        uses: release-drafter/release-drafter@v5
+        uses: release-drafter/release-drafter@v7
         id: release_drafter
-        with:
-          disable-autolabeler: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
