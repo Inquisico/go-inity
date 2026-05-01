@@ -6,9 +6,9 @@ on:
       - master
     paths:
       - "*/**"
-      - "*.go"
       - go.*
       - "!.github/**"
+      - "!dev/**"
       - "!tmp/**"
 
 jobs:
@@ -17,20 +17,18 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Setup Go
-        uses: actions/setup-go@v4
+        uses: actions/setup-go@v6
         with:
           go-version: "stable"
 
       - name: Test
         run: go test -json ./... > test.json
-        env:
-          GOPRIVATE: github.com/inquisico
 
       - name: Annotate tests
         if: always()
-        uses: guyarb/golang-test-annotations@v0.5.1
+        uses: guyarb/golang-test-annotations@v0.9.0
         with:
           test-results: test.json
