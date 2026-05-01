@@ -24,7 +24,7 @@ func newBlockingTask() *blockingTask {
 	}
 }
 
-func (t *blockingTask) Start() error {
+func (t *blockingTask) Start(_ context.Context) error {
 	close(t.started)
 	<-t.closeCh
 
@@ -57,7 +57,7 @@ type errorTask struct {
 	err error
 }
 
-func (t errorTask) Start() error {
+func (t errorTask) Start(_ context.Context) error {
 	return t.err
 }
 
@@ -69,7 +69,7 @@ func TestManagerCloseOnContextCancellation(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	t.Cleanup(cancel)
 
-	manager := New(ctx, "test")
+	manager := New("test")
 	task := newBlockingTask()
 
 	closed := make(chan struct{}, 1)
@@ -81,7 +81,7 @@ func TestManagerCloseOnContextCancellation(t *testing.T) {
 
 	errCh := make(chan error, 1)
 	go func() {
-		errCh <- manager.Start()
+		errCh <- manager.Start(ctx)
 	}()
 
 	select {
@@ -112,7 +112,7 @@ func TestManagerQuitOnTaskError(t *testing.T) {
 	t.Parallel()
 
 	expectedErr := errors.New("boom")
-	manager := New(context.Background(), "test")
+	manager := New("test")
 
 	blocking := newBlockingTask()
 	quitCalled := make(chan struct{}, 1)
@@ -129,7 +129,7 @@ func TestManagerQuitOnTaskError(t *testing.T) {
 
 	errCh := make(chan error, 1)
 	go func() {
-		errCh <- manager.Start()
+		errCh <- manager.Start(context.Background())
 	}()
 
 	select {
@@ -161,5 +161,21 @@ func TestManagerQuitOnTaskError(t *testing.T) {
 	case <-closeCalled:
 		t.Fatal("manager closed remaining task instead of quitting it")
 	default:
+	}
+}
+
+func TestManagerStartReturnsErrTaskManagerStoppedWhenContextAlreadyCancelled(t *testing.T) {
+	t.Parallel()
+
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+
+	manager := New("test")
+	err := manager.Start(ctx)
+	if !errors.Is(err, ErrTaskManagerStopped) {
+		t.Fatalf("expected ErrTaskManagerStopped, got %v", err)
+	}
+	if !errors.Is(err, context.Canceled) {
+		t.Fatalf("expected wrapped context.Canceled, got %v", err)
 	}
 }

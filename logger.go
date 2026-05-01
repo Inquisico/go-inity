@@ -4,7 +4,6 @@ package inity
 
 import (
 	"context"
-	"fmt"
 	"log"
 )
 
@@ -38,14 +37,14 @@ func DefaultLogger() LoggerFunc {
 		switch level {
 		case LevelDebug:
 			l.Println("DEBUG:", msg, fields)
-		case LevelInfo:
-			l.Println("INFO:", msg, fields)
 		case LevelWarn:
 			l.Println("WARN:", msg, fields)
 		case LevelError:
 			l.Println("ERROR:", msg, fields)
+		case LevelInfo:
+			fallthrough
 		default:
-			panic(fmt.Sprintf("unknown level %v", level))
+			l.Println("INFO:", msg, fields)
 		}
 	})
 }
