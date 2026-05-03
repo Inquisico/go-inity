@@ -36,7 +36,7 @@ import (
 
 type server struct{}
 
-func (server) Start() error {
+func (server) Start(ctx context.Context) error {
 	return nil
 }
 
@@ -47,10 +47,10 @@ func main() {
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
 	defer signal.Stop(sigs)
 
-	manager := inity.New(context.Background(), "app", inity.WithSignals(sigs))
+	manager := inity.New("app", inity.WithSignals(sigs))
 	manager.Register(server{})
 
-	if err := manager.Start(); err != nil {
+	if err := manager.Start(context.Background()); err != nil {
 		log.Fatal(err)
 	}
 }
