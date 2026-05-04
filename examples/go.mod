@@ -5,7 +5,7 @@ go 1.26
 replace github.com/inquisico/go-inity => ../
 
 require (
-	github.com/inquisico/go-inity v0.0.0-20260501170349-b501becdd104
+	github.com/inquisico/go-inity v0.0.0-20260504134910-597b370a71e8
 	github.com/rs/zerolog v1.35.1
 )
 

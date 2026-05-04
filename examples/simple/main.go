@@ -15,6 +15,7 @@ func main() {
 	// Define shutting down signals
 	sigs := make(chan os.Signal, 1)
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
+	defer signal.Stop(sigs)
 
 	// Create a task manager
 	taskManager := inity.New("main", inity.WithSignals(sigs))
