@@ -4,33 +4,29 @@ import (
 	"context"
 )
 
-// Task is the unit of work managed by a Manager. Implementations must start
-// when Start is called and tear down on Close. Close must always return so the
-// manager can finish a graceful shutdown.
+// Task is the unit of work managed by a Manager. Close must always return
+// so the manager can finish a graceful shutdown.
 //
-// The manager guarantees that Close (and Quit, if implemented) is not invoked
-// until the goroutine that will run Start has been scheduled and entered, so
-// implementations never see Close fire on an entirely unscheduled task. After
-// that point the call into Start and a concurrent Close race: Start typically
-// blocks for the lifetime of the task, so concurrent teardown is unavoidable.
-// Implementations must therefore be safe to Close while Start is still
-// executing, including during whatever setup Start does on its first lines.
+// The manager guarantees Close (and Quit) are not called until the
+// goroutine that runs Start has been entered, so an unscheduled task never
+// sees Close. Once entered, Start and a concurrent Close race;
+// implementations must therefore tolerate Close firing while Start is
+// still executing — including during Start's own setup.
 type Task interface {
 	Start(ctx context.Context) error
 	Close()
 }
 
-// Quit is an optional Task extension. When the manager performs a forceful
-// shutdown (a peer task failed) it calls Quit instead of Close so the task can
-// abort fast rather than completing graceful teardown.
+// Quit is an optional Task extension. The manager calls Quit instead of
+// Close on a forceful shutdown (peer task failed) so the task can abort
+// fast rather than completing graceful teardown.
 type Quit interface {
 	Quit()
 }
 
-// taskWrapper carries the per-task state the manager needs around a Task: the
-// task itself and a started channel that wrapStart closes immediately before
-// invoking task.Start. close/quit block on that channel so the manager never
-// teardown-calls a task whose Start has not yet been entered.
+// taskWrapper pairs a Task with a started channel that wrapStart closes
+// just before invoking task.Start, so close/quit can block on it and never
+// teardown-call a task whose Start has not yet been entered.
 type taskWrapper struct {
 	task    Task
 	started chan struct{}
@@ -54,8 +50,7 @@ func (t *taskWrapper) quit() {
 		q.Quit()
 		return
 	}
-	// Fallback: the task didn't opt in to fast shutdown, so we still call Close.
-	// This blocks until Close returns; tasks that need to abort quickly should
-	// implement Quit.
+	// Fallback: task didn't opt in to fast shutdown, so we call Close and
+	// block until it returns.
 	t.task.Close()
 }
